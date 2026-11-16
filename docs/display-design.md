@@ -33,6 +33,10 @@ claiming that channel exhaustion is proven.
 
 The approved layout uses live MQTT state. Updates are coalesced, unchanged
 images are skipped, and physical redraws are limited to one every 16 seconds.
+When spa telemetry is stale, both temperatures show `--`; the six equipment
+icons keep their last observed states, the lower-right link icon turns off, and
+the bottom line shows a bell with `GATEWAY OFFLINE`, `SPA LINK LOST`, or
+`WAITING FOR SPA` as appropriate.
 
 Icons are monochrome BMPs selected from Home Assistant's MDI set; their SVG
 sources and license are in [`assets/mdi`](../assets/mdi/).

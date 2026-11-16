@@ -194,7 +194,7 @@ font:
   - file: "gfonts://Roboto@700"
     id: font_temperature
     size: 52
-    glyphs: "0123456789."
+    glyphs: "0123456789.-"
 
 image:
   - platform: file
@@ -733,32 +733,56 @@ display:
                   static_cast<unsigned long>(id(gateway_polls_coalesced)));
         it.printf(center, 89, id(font_small), Color::WHITE, TextAlign::TOP_CENTER,
                   "PENDING %lu", static_cast<unsigned long>(id(gateway_event_pending)));
-      } else if (!spa_fresh || !id(spa_current_temperature).has_state()) {
-        const char *message = "WAITING FOR SPA";
-        if (!id(gateway_online)) message = "GATEWAY OFFLINE";
-        else if (id(last_spa_status_ms) != 0) message = "SPA LINK LOST";
-        it.print(center, 49, id(font_medium), Color::WHITE,
-                 TextAlign::TOP_CENTER, message);
       } else {
-        it.printf(center, 39, id(font_temperature), Color::WHITE,
-                  TextAlign::CENTER, "%.1f", id(spa_current_temperature).state);
-        if (id(spa_target_temperature).has_state())
-          it.printf(center, 78, id(font_small), Color::WHITE, TextAlign::TOP_CENTER,
-                    "SET %.1f C", id(spa_target_temperature).state);
-        else
-          it.print(center, 78, id(font_small), Color::WHITE,
-                   TextAlign::TOP_CENTER, "SET -- C");
-        if (id(spa_notification_code) != 0) {
+        const bool current_is_fresh = spa_fresh && id(spa_current_temperature).has_state();
+        if (current_is_fresh) {
+          it.printf(center, 39, id(font_temperature), Color::WHITE,
+                    TextAlign::CENTER, "%.1f", id(spa_current_temperature).state);
+          if (id(spa_target_temperature).has_state())
+            it.printf(center, 78, id(font_small), Color::WHITE, TextAlign::TOP_CENTER,
+                      "SET %.1f C", id(spa_target_temperature).state);
+          else
+            it.print(center, 78, id(font_small), Color::WHITE,
+                     TextAlign::TOP_CENTER, "SET -- C");
+
+          const char *bottom_message = nullptr;
           char note[32];
           if (id(spa_notification_code) == 0x04) snprintf(note, sizeof(note), "CLN FLTR");
           else if (id(spa_notification_code) == 0x09) snprintf(note, sizeof(note), "CHECK SANITIZER");
           else if (id(spa_notification_code) == 0x0A) snprintf(note, sizeof(note), "CHECK pH");
-          else snprintf(note, sizeof(note), "SPA NOTE %02X", id(spa_notification_code));
-          it.image(center - 60, 97, id(mdi_spa_notification), icon_white, icon_black);
-          it.printf(center - 36, 99, id(font_small), Color::WHITE,
-                    TextAlign::TOP_LEFT, "%s", note);
-        } else if (id(spa_priming_on)) {
-          it.print(center, 98, id(font_medium), Color::WHITE,
-                   TextAlign::TOP_CENTER, "PRIME PUMPS");
+          else if (id(spa_notification_code) != 0)
+            snprintf(note, sizeof(note), "SPA NOTE %02X", id(spa_notification_code));
+          if (id(spa_notification_code) != 0) bottom_message = note;
+          else if (id(spa_priming_on)) bottom_message = "PRIME PUMPS";
+          if (bottom_message != nullptr) {
+            int text_x, text_y, text_width, text_height;
+            it.get_text_bounds(0, 0, bottom_message, id(font_small), TextAlign::TOP_LEFT,
+                               &text_x, &text_y, &text_width, &text_height);
+            constexpr int icon_size = 24;
+            constexpr int icon_gap = 8;
+            const int group_width = icon_size + icon_gap + text_width;
+            const int group_left = center - group_width / 2;
+            it.image(group_left, 92, id(mdi_spa_notification), icon_white, icon_black);
+            it.print(group_left + icon_size + icon_gap, 92 + (icon_size - text_height) / 2,
+                     id(font_small), Color::WHITE, TextAlign::TOP_LEFT, bottom_message);
+          }
+        } else {
+          it.print(center, 39, id(font_temperature), Color::WHITE,
+                   TextAlign::CENTER, "--");
+          it.print(center, 78, id(font_small), Color::WHITE,
+                   TextAlign::TOP_CENTER, "SET -- C");
+          const char *message = "WAITING FOR SPA";
+          if (!id(gateway_online)) message = "GATEWAY OFFLINE";
+          else if (id(last_spa_status_ms) != 0) message = "SPA LINK LOST";
+          int text_x, text_y, text_width, text_height;
+          it.get_text_bounds(0, 0, message, id(font_small), TextAlign::TOP_LEFT,
+                             &text_x, &text_y, &text_width, &text_height);
+          constexpr int icon_size = 24;
+          constexpr int icon_gap = 8;
+          const int group_width = icon_size + icon_gap + text_width;
+          const int group_left = center - group_width / 2;
+          it.image(group_left, 92, id(mdi_spa_notification), icon_white, icon_black);
+          it.print(group_left + icon_size + icon_gap, 92 + (icon_size - text_height) / 2,
+                   id(font_small), Color::WHITE, TextAlign::TOP_LEFT, message);
         }
       }

@@ -45,6 +45,9 @@ labels stay below the temperature with a bell; unknown code `0x28` is shown as
 `SPA NOTE 28`. A live fresh status carried notification `0x28` (40 decimal),
 and the LilyGO status reflected it; the gateway dropped offline before the
 physical bell/text rendering could be confirmed.
+When spa telemetry is stale, both temperature fields show `--`, while the
+equipment icons retain their last observed states and the bottom line identifies
+the upstream link condition.
 See [`docs/hardware.md`](docs/hardware.md),
 [`docs/mqtt-contract.md`](docs/mqtt-contract.md), and
 [`docs/display-design.md`](docs/display-design.md).
