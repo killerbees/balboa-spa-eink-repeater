@@ -67,5 +67,7 @@ The YAML enables retained ESPHome discovery for one device, including health
 entities for LilyGO Wi-Fi RSSI, MQTT connectivity, gateway availability, spa
 telemetry freshness/age, and active alert, plus observed spa values. State
 values and status JSON are non-retained. HA availability uses the LilyGO's own
-availability topic. Any discrepancy between this list and generated discovery
-is a known implementation/doc gap to check on hardware.
+availability topic. Gateway-sourced numeric state sensors expire after 90
+seconds without a refresh; the Spa Link entity separately reports stale spa
+telemetry. Any discrepancy between this list and generated discovery is a
+known implementation/doc gap to check on hardware.

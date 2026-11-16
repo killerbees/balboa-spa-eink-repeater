@@ -180,6 +180,7 @@ sensor:
     device_class: temperature
     state_class: measurement
     accuracy_decimals: 1
+    expire_after: 90s
     on_value:
       then:
         - lambda: |-
@@ -193,6 +194,7 @@ sensor:
     device_class: temperature
     state_class: measurement
     accuracy_decimals: 1
+    expire_after: 90s
     on_value:
       then:
         - script.execute: refresh_display
@@ -201,6 +203,7 @@ sensor:
     name: Spa Jets Speed
     topic: ${gateway_prefix}/fan/spa_jets/speed_level/state
     accuracy_decimals: 0
+    expire_after: 90s
     on_value:
       then:
         - script.execute: refresh_display
