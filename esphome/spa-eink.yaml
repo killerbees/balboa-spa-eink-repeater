@@ -97,6 +97,7 @@ mqtt:
                   id(spa_target_temperature).publish_state(state["target_temperature_c"].as<float>());
                 id(spa_notification_code) = state["notification"] | 0;
                 id(spa_heating_mode_raw) = state["heating_mode_raw"] | 0;
+                id(spa_temperature_range_raw) = state["temperature_range_raw"] | 0;
                 if (state["pumps"].is<JsonArrayConst>()) {
                   JsonArrayConst pumps = state["pumps"].as<JsonArrayConst>();
                   if (pumps.size() > 0) id(spa_jets_speed).publish_state(pumps[0].as<int>());
@@ -329,6 +330,9 @@ globals:
     type: int
     initial_value: "0"
   - id: spa_heating_mode_raw
+    type: int
+    initial_value: "0"
+  - id: spa_temperature_range_raw
     type: int
     initial_value: "0"
   - id: spa_heating_on
@@ -576,13 +580,23 @@ display:
         if (!spa_fresh || !id(spa_current_temperature).has_state()) {
           it.print(4, 44, id(font_medium), "WAITING FOR SPA DATA");
         } else {
+          const char *mode_label = "MODE?";
+          if (id(spa_heating_mode_raw) == 0) mode_label = "READY";
+          else if (id(spa_heating_mode_raw) == 1) mode_label = "REST";
+          else if (id(spa_heating_mode_raw) == 3) mode_label = "READY/REST";
           it.printf(4, 28, id(font_large), "%.1f", id(spa_current_temperature).state);
           it.printf(width - 4, 36, id(font_medium), "°C");
           if (id(spa_target_temperature).has_state())
             it.printf(4, 68, id(font_small), "SET %.1f °C", id(spa_target_temperature).state);
+          it.printf(width - 4, 27, id(font_small), TextAlign::TOP_RIGHT, "%s",
+                    id(spa_temperature_range_raw) == 1 ? "HIGH" : "LOW");
+          it.printf(width - 4, 44, id(font_small), TextAlign::TOP_RIGHT, "F1 %s",
+                    id(spa_filter1_on) ? "ON" : "--");
+          it.printf(width - 4, 59, id(font_small), TextAlign::TOP_RIGHT, "F2 %s",
+                    id(spa_filter2_on) ? "ON" : "--");
           it.printf(4, height - 18, id(font_small), "%s  %s  JETS %s  LIGHT %s",
                     id(spa_heating_on) ? "HEAT" : "",
-                    id(spa_heating_mode_raw) == 1 ? "REST" : "READY",
+                    mode_label,
                     id(spa_jets_speed).has_state() && id(spa_jets_speed).state > 0 ? "ON" : "OFF",
                     id(spa_light_on) ? "ON" : "OFF");
         }
