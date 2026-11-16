@@ -42,8 +42,9 @@ display restart were exercised; restart produced a new boot ID. The diagnostics
 command requested `STATUS 8` and `DEBUG 8`. Physical rendering of the diagnostics
 overlay, notifications, and gateway alerts still needs validation. Notification
 labels stay below the temperature with a bell; unknown code `0x28` is shown as
-`SPA NOTE 28`, but that bell/text rendering has not yet been observed with a
-live notification.
+`SPA NOTE 28`. A live fresh status carried notification `0x28` (40 decimal),
+and the LilyGO status reflected it; the gateway dropped offline before the
+physical bell/text rendering could be confirmed.
 See [`docs/hardware.md`](docs/hardware.md),
 [`docs/mqtt-contract.md`](docs/mqtt-contract.md), and
 [`docs/display-design.md`](docs/display-design.md).
