@@ -114,8 +114,8 @@ mqtt:
                 } else if (strcmp(kind, "REJECTED") == 0 &&
                            event["frame_type"] == 0xBF02 &&
                            event["detail"] == 6 && event["channel"] > 0x2F) {
-                  id(active_alert) = "CHANNEL LIMIT: ASSIGNMENT REJECTED";
-                  id(active_alert_code) = "CHANNEL_RANGE_EXCEEDED";
+                  id(active_alert) = "INVALID CHANNEL ASSIGNMENT; SPA PACK MAY NEED RESET";
+                  id(active_alert_code) = "INVALID_CHANNEL_ASSIGNMENT";
                   id(alert_event_seq) = event["seq"] | 0;
                   id(alert_until_ms) = millis() + 120000UL;
                 }
@@ -480,8 +480,18 @@ display:
                   id(spa_link).has_state() && id(spa_link).state ? "fresh" : "stale");
         it.printf(4, 66, id(font_small), "HEAP: %lu", static_cast<unsigned long>(ESP.getFreeHeap()));
       } else if (!id(active_alert).empty()) {
-        it.print(4, 4, id(font_medium), "GATEWAY ALERT");
-        it.printf(4, 38, id(font_medium), "%s", id(active_alert).c_str());
+        if (id(active_alert_code) == "POSSIBLE_CHANNEL_LEAK") {
+          it.print(4, 4, id(font_medium), "POSSIBLE CHANNEL LEAK");
+          it.print(4, 40, id(font_small), "Fresh registration replaced a saved channel.");
+          it.print(4, 61, id(font_small), "Old channel may still be allocated.");
+        } else if (id(active_alert_code) == "INVALID_CHANNEL_ASSIGNMENT") {
+          it.print(4, 4, id(font_medium), "INVALID CHANNEL ASSIGNMENT");
+          it.print(4, 40, id(font_small), "Rejected assignment is above 0x2F.");
+          it.print(4, 61, id(font_medium), "SPA PACK MAY NEED RESET");
+        } else {
+          it.print(4, 4, id(font_medium), "GATEWAY ALERT");
+          it.printf(4, 38, id(font_medium), "%s", id(active_alert).c_str());
+        }
       } else if (id(spa_notification_code) != 0) {
         const char *note = "SPA NOTICE";
         if (id(spa_notification_code) == 0x04) note = "CLEAN FILTER";

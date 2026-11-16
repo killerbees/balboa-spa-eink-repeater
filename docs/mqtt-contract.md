@@ -44,11 +44,11 @@ on its own `/status` topic. RESTART reboots only the LilyGO display.
 
 The gateway currently returns bounded event provenance in `DEBUG 8`; the
 LilyGO can display `POSSIBLE_CHANNEL_LEAK` from that response for two minutes.
-A rejected
-invalid-channel assignment (`REJECTED`, frame type `0xBF02`, detail `6`, raw
-channel above `0x2F`) is shown as `CHANNEL LIMIT: ASSIGNMENT REJECTED`. This is
-evidence of a rejected out-of-range assignment, not proof that every channel is
-allocated. Do not infer exhaustion from READY traffic or a missing assignment.
+A rejected invalid-channel assignment (`REJECTED`, frame type `0xBF02`, detail
+`6`, raw channel above `0x2F`) is shown with a spa-pack reset recommendation.
+The event proves an out-of-range assignment was rejected; pool exhaustion is a
+likely explanation, not directly proven by this event. Do not infer exhaustion
+from READY traffic or a missing assignment.
 
 ## Home Assistant discovery
 
