@@ -34,10 +34,12 @@ fresh same-boot spa status is arriving. MQTT online by itself does not light it.
 Accepted command payloads are `STATUS`, `DIAGNOSTICS`, and the current-boot
 token form `RESTART <token>`. Obtain the token from the device's own STATUS JSON
 as `reset_command`; this prevents a retained restart payload from rebooting each
-time the device reconnects. DIAGNOSTICS opens the local overlay until its HA
-switch is turned off. The overlay shows LilyGO MQTT/heap status plus gateway
-registration, RS-485 TX/RX counters, event loss, poll coalescing, and pending
-events. No spa-control commands are accepted. The display responds on its own
+time the device reconnects. DIAGNOSTICS sets the local overlay until its HA
+switch is turned off. It requests gateway RS-485 counters and bounded event
+provenance. The overlay shows LilyGO MQTT status plus gateway registration,
+RS-485 RX/TX counters, event loss, poll coalescing, and pending events. E-paper
+updates are event-driven, skip unchanged images, and are limited to one per 16
+seconds. No spa-control commands are accepted. The display responds on its own
 `/status` topic. RESTART reboots only the LilyGO display.
 
 Examples (substitute broker flags/credentials for the local network):
@@ -74,7 +76,8 @@ The YAML enables retained ESPHome discovery for one device, including health
 entities for LilyGO Wi-Fi RSSI, MQTT connectivity, gateway availability, spa
 telemetry freshness/age, and active alert, plus observed spa values. State
 values and status JSON are non-retained. HA availability uses the LilyGO's own
-availability topic. Gateway-sourced numeric state sensors expire after 90
-seconds without a refresh; the Spa Link entity separately reports stale spa
-telemetry. Any discrepancy between this list and generated discovery is a
-known implementation/doc gap to check on hardware.
+availability topic. Gateway-sourced numeric state sensors are configured to
+expire after 90 seconds without a refresh; the Spa Link entity separately
+reports stale spa telemetry. The broker has returned the retained discovery
+configs and live health states; Home Assistant's rendered device and entity
+behavior still needs confirmation.

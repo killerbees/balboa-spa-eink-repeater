@@ -13,10 +13,13 @@ flex/cable before choosing an ESPHome `waveshare_epaper` model.
 | GDEM0213B74 | `2.13in-ttgo-b74` |
 | GDEW0213M21 | Not yet verified in the current ESPHome driver list |
 
-The YAML currently selects DKE only as a compile candidate. Do not flash until
-the physical panel variant is confirmed. An incorrect driver can leave the
-display blank or produce a damaged-looking refresh; it does not change the
-read-only MQTT behavior.
+The unit is marked `T5 V2.3.1 2.13`, but its panel itself is unmarked. The
+initial DKE profile timed out during a full refresh. The B74 profile rendered a
+stable geometric test and a full white frame after drawing colors were reversed
+(`Color::BLACK` background, `Color::WHITE` ink). The live renderer has since
+been flashed using this profile. This is empirical evidence that B74 is usable
+on this unit, not proof of the panel's part number. Do not switch profiles
+based on the board marking alone.
 
 References: [LilyGO T5 E-paper Series](https://github.com/Xinyuan-LILYGO/LilyGo-T5-Epaper-Series)
 and [ESPHome Waveshare e-paper models](https://esphome.io/components/display/waveshare_epaper/).
@@ -43,10 +46,9 @@ to the later V2.4 board and is not part of this V2.3.1 profile.
 
 1. Confirm the board revision and panel marking.
 2. Remove the microSD card before upload.
-3. Compile with the matching panel model and inspect ESPHome output.
-4. Flash and check the panel test/layout over USB before connecting it to Wi-Fi
-   or MQTT.
-5. Confirm MQTT subscriptions and Home Assistant discovery only after the
-   screen renders correctly.
+3. Compile using `ESPHOME_BUILD_PATH` outside the repository build directory.
+4. Flash over USB and verify the physical image and refresh behavior.
+5. Validate MQTT inputs, Home Assistant discovery, and alert handling. The
+   display has no RS-485 connection and publishes no spa-control commands.
 
 The repeater has no RS-485 wiring and never sends spa-control commands.

@@ -25,11 +25,27 @@ See [`docs/hardware.md`](docs/hardware.md) for the pin map and driver variants.
 
 ## Project status
 
-Firmware candidate and message contract are in place. Board revision/panel
-controller and first USB boot are not yet confirmed. No firmware has been
-flashed. The ESPHome configuration validates and compiles against ESPHome
-2026.10.2; the selected DKE driver is only a compile candidate pending the
-panel label. See [`docs/mqtt-contract.md`](docs/mqtt-contract.md) and
+The LilyGO T5 V2.3.1 has been flashed with the live MQTT renderer over USB. Its
+panel is unmarked. The DKE profile timed out during a full refresh; the B74
+profile rendered reliably with reversed drawing colors, though that does not
+prove the panel's part number. The renderer uses bold centered temperature,
+set point, six state icons, and a prioritized alert/notification area. MQTT
+connectivity and the display's own retained availability have been observed.
+The broker has shown the LilyGO online with Wi-Fi at −43 dBm and confirmed 20
+retained Home Assistant discovery configs plus live health-entity state
+messages. A fresh spa snapshot and matching HA readings (37.5°C current, 38°C
+target) were observed after the gateway briefly returned; its availability
+continued to alternate during observation. Home Assistant entity presentation
+and physical rendering of notifications and gateway alerts still need
+validation. MQTT `STATUS`, diagnostics overlay toggling, and the token-gated
+display restart were exercised; restart produced a new boot ID. The diagnostics
+command requested `STATUS 8` and `DEBUG 8`. Physical rendering of the diagnostics
+overlay, notifications, and gateway alerts still needs validation. Notification
+labels stay below the temperature with a bell; unknown code `0x28` is shown as
+`SPA NOTE 28`, but that bell/text rendering has not yet been observed with a
+live notification.
+See [`docs/hardware.md`](docs/hardware.md),
+[`docs/mqtt-contract.md`](docs/mqtt-contract.md), and
 [`docs/display-design.md`](docs/display-design.md).
 
 ## Local build
@@ -43,7 +59,8 @@ ESPHOME_BUILD_PATH=/tmp/balboa-spa-eink-build esphome compile esphome/spa-eink.y
 ```
 
 Compilation does not upload firmware. Remove the microSD card before USB
-upload. See [`docs/hardware.md`](docs/hardware.md) before selecting a driver.
+upload. See [`docs/hardware.md`](docs/hardware.md) for the empirical panel
+profile and current validation status.
 
 ## License
 

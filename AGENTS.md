@@ -8,7 +8,14 @@
 - Distinguish MQTT reachability from fresh spa telemetry. The TP500-style link
   icon represents fresh RS-485-derived spa status, not Wi-Fi association.
 - Do not infer commands, ACKs, or physical state from gateway-local events.
-- Verify the board revision and e-paper panel controller before selecting a
-  driver or flashing firmware.
-- Keep display refreshes event-driven and rate-limited; avoid rapid full-screen
-  e-paper refreshes.
+- The physical board is LilyGO T5 V2.3.1, marked 2.13-inch; the panel is
+  unmarked. DKE timed out. B74 produced a stable image with inverted drawing
+  colors, but that does not identify the panel part number.
+- The operator approved the restomod layout and event-driven refreshes. Keep
+  refreshes coalesced, skip unchanged frames, and preserve the 16-second
+  minimum interval between physical e-paper redraws.
+- Layout direction: restomod, no borders or icon labels, three status icons in
+  a vertical column on each side, centered temperature and set point, with
+  space for short alert/notification/priming messages.
+- Keep this project read-only toward spa controls. The display may request
+  STATUS/DEBUG data and must never publish spa-control commands.

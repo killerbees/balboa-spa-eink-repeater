@@ -1,32 +1,38 @@
 # Display design
 
-Target the TP500 main-screen hierarchy rather than reproducing its segmented
-LCD electrically: one large current-temperature value, compact status glyphs,
-and a right-side column for range/filter indicators. The LilyGO is read-only.
+This is a read-only restomod inspired by the TP500, not a pixel-for-pixel
+reproduction. There are no borders or labels around the icons. The temperature
+uses a bold face in the center column, with its set point below; three stateful
+icon slots run down each side, leaving space for short messages around the
+temperature. The set point uses `C` rather than the degree glyph to avoid a
+missing-font box, and `PRIME PUMPS` appears below the set point.
 
 ```text
-┌──────────────────────────────┐
-│                           )))│  Fresh spa telemetry glyph; crossed out when stale
-│                              │
-│       38.0 °C      HIGH      │  Current temperature, range at right
-│       SET 38.0 °C   F1  --   │  Target and filter indicators
-│                      F2  ON  │
-│                              │
-│ HEAT READY/REST  LIGHT JETS ON│  Equipment state summary
-└──────────────────────────────┘
+        CHANNEL ALERT
+ [READY]        38.0        [HIGH]
+ [HEAT]      SET 38.0 C     [LIGHT]
+ [FAN]       SPA NOTE 28    [SPA LINK]
 ```
 
-The link glyph is the TP500-style Wi-Fi symbol repurposed to mean fresh
-connectivity to the spa through the gateway. It does not mean the LilyGO has
-Wi-Fi association; that belongs in HA health sensors. A crossed-out glyph is
-shown until fresh gateway spa telemetry arrives and whenever it becomes stale.
+The side slots change icon in place: Ready/Rest (including READY-IN-REST);
+heat on/off; jets fan on/off;
+high/low range; light on/off; and fresh/stale spa link. The jets use a fan or
+propeller symbol. The Wi-Fi glyph means
+fresh spa telemetry through the gateway, not the LilyGO's Wi-Fi association.
+Filter-cycle indicators are omitted from the main screen; they remain available
+in diagnostics if needed.
 
-A spa notification or gateway alert can replace the main temperature area
-while active, with a short label and readable explanation. Return to the normal
-screen only when the source clears the alert or its explicit expiry elapses.
-Notification/alert precedence and exact layout still need validation on the
-physical panel.
+The center area prioritizes invalid-channel alert, possible channel leak,
+requested diagnostics, and stale-link message. With fresh spa data, temperature
+and set point remain visible; a bell and spa notification use the bottom line.
+Known notification codes use their short labels; unknown codes are shown in hex
+as `SPA NOTE NN`. The notification takes precedence over `PRIME PUMPS` when
+both need the bottom line. Otherwise `PRIME PUMPS` appears there while priming
+is active. An invalid channel assignment recommends a spa-pack reset without
+claiming that channel exhaustion is proven.
 
-The ESPHome display refresh is event-driven and coalesces bursts for 750 ms to
-avoid repeated full-screen refreshes. Confirm portrait/landscape rotation, font
-legibility, and ghosting on the actual panel before calling the layout done.
+The approved layout uses live MQTT state. Updates are coalesced, unchanged
+images are skipped, and physical redraws are limited to one every 16 seconds.
+
+Icons are monochrome BMPs selected from Home Assistant's MDI set; their SVG
+sources and license are in [`assets/mdi`](../assets/mdi/).
