@@ -11,7 +11,8 @@ discovery.
 
 ## Hardware and compatibility
 
-- LilyGO/TTGO T5 V2.3.1, ESP32, 2.13-inch 122 × 250 e-paper panel.
+- Runs on LILYGO TTGO T5 V2.3.1 2.13 Inch Screen 122 × 250 E-Paper panel. New Driver Chip GDEM0213B74 e-Ink Display ESP32 Module  
+- https://www.amazon.co.uk/dp/B09GY2Z75P?ref_=ppx_hzsearch_conn_dt_b_fed_asin_title_1
 - The panel is unmarked. ESPHome's B74 profile has rendered on this unit; DKE
   timed out. B74 is an empirical choice, not an identified panel part.
 - The MQTT integration uses schema v2 from the gateway's
