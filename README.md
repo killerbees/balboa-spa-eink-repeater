@@ -25,7 +25,7 @@ See [`docs/hardware.md`](docs/hardware.md) for the pin map and driver variants.
 
 ## Project status
 
-Project scaffold and message contract are in progress. Board revision/panel
+Firmware candidate and message contract are in place. Board revision/panel
 controller and first USB boot are not yet confirmed. No firmware has been
 flashed. The ESPHome configuration validates and compiles against ESPHome
 2026.10.2; the selected DKE driver is only a compile candidate pending the
