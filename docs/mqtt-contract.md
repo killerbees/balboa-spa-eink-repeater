@@ -10,18 +10,16 @@ It does not subscribe to or publish spa-control entity command topics.
 - `balboa/waveshare/sensor/spa_current_temperature/state`
 - `balboa/waveshare/sensor/spa_target_temperature/state`
 - `balboa/waveshare/select/spa_heating_mode/state`
-- `balboa/waveshare/select/spa_temperature_range/state`
-- `balboa/waveshare/select/spa_temperature_scale/state`
-- `balboa/waveshare/binary_sensor/spa_heating/state`
 - `balboa/waveshare/fan/spa_jets/state` and `.../speed_level/state`
 - `balboa/waveshare/switch/spa_light/state`
-- `balboa/waveshare/status`: typed JSON CONFIG/STATUS/DEBUG responses.
+- `balboa/waveshare/status`: typed JSON CONFIG/STATUS/DEBUG responses, used for
+  fresh spa snapshots and RS-485 diagnostics.
 
-The display should request `STATUS 5` for a current spa snapshot and `DEBUG 8`
-for bounded RS-485 provenance when needed. Requests are non-retained and
-rate-limited. It must validate the JSON `schema_version` and `message` fields;
-unknown fields/messages are ignored. A topic's arrival alone is not proof of
-fresh spa telemetry.
+The display requests `STATUS 5` for a current spa snapshot and, on demand and
+once per minute, `STATUS 8` plus `DEBUG 8` for RS-485 counters and bounded event
+provenance. Requests are non-retained. It validates JSON `schema_version`,
+`message`, and selector fields; unknown fields/messages are ignored. A topic's
+arrival alone is not proof of fresh spa telemetry.
 
 The TP500-style spa-link glyph is on only while the gateway is available and
 fresh same-boot spa status is arriving. MQTT online by itself does not light it.
@@ -37,8 +35,21 @@ Accepted command payloads are `STATUS`, `DIAGNOSTICS`, and the current-boot
 token form `RESTART <token>`. Obtain the token from the device's own STATUS JSON
 as `reset_command`; this prevents a retained restart payload from rebooting each
 time the device reconnects. DIAGNOSTICS opens the local overlay until its HA
-switch is turned off. No spa-control commands are accepted. The display responds
-on its own `/status` topic. RESTART reboots only the LilyGO display.
+switch is turned off. The overlay shows LilyGO MQTT/heap status plus gateway
+registration, RS-485 TX/RX counters, event loss, poll coalescing, and pending
+events. No spa-control commands are accepted. The display responds on its own
+`/status` topic. RESTART reboots only the LilyGO display.
+
+Examples (substitute broker flags/credentials for the local network):
+
+```sh
+mosquitto_pub -t balboa/spa-eink/command -m STATUS
+mosquitto_sub -t balboa/spa-eink/status
+mosquitto_pub -t balboa/spa-eink/command -m DIAGNOSTICS
+```
+
+To restart, first read the `reset_command` field from `/status`, then publish
+that exact payload. Never retain commands.
 
 ## Gateway alert transport
 
