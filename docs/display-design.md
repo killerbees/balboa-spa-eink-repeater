@@ -33,7 +33,8 @@ claiming that channel exhaustion is proven.
 
 The approved layout uses live MQTT state. Updates are coalesced, unchanged
 images are skipped, and physical redraws are limited to one every 16 seconds.
-When spa telemetry is stale, both temperatures show `--`; the six equipment
+When spa telemetry is stale, current temperature shows `--.-` and the set point
+keeps its last known value (or shows `SET -- C` if unknown). The six equipment
 icons keep their last observed states, the lower-right link icon turns off, and
 the bottom line shows a bell with `GATEWAY OFFLINE`, `SPA LINK LOST`, or
 `WAITING FOR SPA` as appropriate.

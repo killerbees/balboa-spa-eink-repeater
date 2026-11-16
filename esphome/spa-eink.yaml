@@ -768,9 +768,13 @@ display:
           }
         } else {
           it.print(center, 39, id(font_temperature), Color::WHITE,
-                   TextAlign::CENTER, "--");
-          it.print(center, 78, id(font_small), Color::WHITE,
-                   TextAlign::TOP_CENTER, "SET -- C");
+                   TextAlign::CENTER, "--.-");
+          if (id(spa_target_temperature).has_state())
+            it.printf(center, 78, id(font_small), Color::WHITE, TextAlign::TOP_CENTER,
+                      "SET %.1f C", id(spa_target_temperature).state);
+          else
+            it.print(center, 78, id(font_small), Color::WHITE,
+                     TextAlign::TOP_CENTER, "SET -- C");
           const char *message = "WAITING FOR SPA";
           if (!id(gateway_online)) message = "GATEWAY OFFLINE";
           else if (id(last_spa_status_ms) != 0) message = "SPA LINK LOST";
