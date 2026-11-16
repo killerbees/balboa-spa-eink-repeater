@@ -85,6 +85,7 @@ mqtt:
               id(gateway_tx_frames) = rs485["tx_frames"] | 0;
               id(gateway_tx_bytes) = rs485["tx_bytes"] | 0;
               id(refresh_display).execute();
+              id(publish_device_status).execute();
             } else if (strcmp(message, "STATUS") == 0 && selector == 5) {
               JsonObjectConst spa = x["status"]["spa"].as<JsonObjectConst>();
               const bool fresh = spa["fresh"] | false;
@@ -112,6 +113,7 @@ mqtt:
                 id(spa_filter2_on) = state["filter2_running"] | false;
               }
               id(refresh_display).execute();
+              id(publish_device_status).execute();
             } else if (strcmp(message, "DEBUG") == 0 && selector == 8 && x["debug"]["events"].is<JsonArrayConst>()) {
               JsonObjectConst debug = x["debug"].as<JsonObjectConst>();
               id(gateway_critical_overwritten) = debug["critical_overwritten"] | 0;
@@ -149,6 +151,7 @@ mqtt:
         - lambda: |-
             if (x == "STATUS") {
               id(publish_device_status).execute();
+              if (id(gateway_online)) id(request_gateway_status).execute();
             } else if (x == "DIAGNOSTICS") {
               id(show_diagnostics) = true;
               id(display_diagnostics).publish_state(true);
@@ -441,6 +444,21 @@ script:
             if (id(last_spa_status_ms) == 0) root["spa_status_age_ms"] = nullptr;
             else root["spa_status_age_ms"] = millis() - id(last_spa_status_ms);
             root["spa_notification_code"] = id(spa_notification_code);
+            if (id(spa_current_temperature).has_state())
+              root["spa_current_temperature_c"] = id(spa_current_temperature).state;
+            else root["spa_current_temperature_c"] = nullptr;
+            if (id(spa_target_temperature).has_state())
+              root["spa_target_temperature_c"] = id(spa_target_temperature).state;
+            else root["spa_target_temperature_c"] = nullptr;
+            root["spa_heating_mode_raw"] = id(spa_heating_mode_raw);
+            root["spa_temperature_range_raw"] = id(spa_temperature_range_raw);
+            root["spa_heating"] = id(spa_heating_on);
+            root["spa_priming"] = id(spa_priming_on);
+            root["spa_light"] = id(spa_light_on);
+            root["spa_filter1_running"] = id(spa_filter1_on);
+            root["spa_filter2_running"] = id(spa_filter2_on);
+            if (id(spa_jets_speed).has_state()) root["spa_jets_speed"] = id(spa_jets_speed).state;
+            else root["spa_jets_speed"] = nullptr;
             if (id(last_display_update_ms) == 0) root["display_refresh_age_ms"] = nullptr;
             else root["display_refresh_age_ms"] = millis() - id(last_display_update_ms);
             root["active_alert"] = id(active_alert);

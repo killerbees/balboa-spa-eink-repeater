@@ -51,6 +51,13 @@ mosquitto_pub -t balboa/spa-eink/command -m DIAGNOSTICS
 To restart, first read the `reset_command` field from `/status`, then publish
 that exact payload. Never retain commands.
 
+STATUS publishes the cached device health and spa snapshot immediately, then
+requests a fresh gateway spa snapshot when the gateway is online and publishes
+again when that response arrives. The JSON includes spa temperatures, heating
+mode/range, jets speed, light, heating/priming/filter flags, link freshness,
+gateway registration/counters, alert information, display age, and a
+current-boot restart token. Missing readings are JSON `null`.
+
 ## Gateway alert transport
 
 The gateway currently returns bounded event provenance in `DEBUG 8`; the
