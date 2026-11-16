@@ -1,0 +1,6 @@
+.pio/
+.vscode/
+include/secrets.h
+secrets.yaml
+*.log
+.DS_Store
