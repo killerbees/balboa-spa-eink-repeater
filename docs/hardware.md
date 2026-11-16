@@ -2,10 +2,10 @@
 
 ## Supported target
 
-The initial target is the LilyGO/TTGO T5 V2.3.1 with an ESP32, microSD slot,
-and 2.13-inch 122 × 250 e-paper panel. The V2.3.1 board name alone does not
-identify the e-paper controller. Read the panel marking or inspect the display
-flex/cable before choosing an ESPHome `waveshare_epaper` model.
+The target is the LilyGO/TTGO T5 V2.3.1 with an ESP32, microSD slot, and
+2.13-inch 122 × 250 e-paper panel. The V2.3.1 board name alone does not identify
+the e-paper controller. Prefer the panel marking or inspect the flex/cable
+before choosing an ESPHome `waveshare_epaper` model.
 
 | Panel marking / family | ESPHome model |
 | --- | --- |

@@ -22,22 +22,21 @@ fresh spa telemetry through the gateway, not the LilyGO's Wi-Fi association.
 Filter-cycle indicators are omitted from the main screen; they remain available
 in diagnostics if needed.
 
-The center area prioritizes invalid-channel alert, possible channel leak,
-requested diagnostics, and stale-link message. With fresh spa data, temperature
-and set point remain visible; a bell and spa notification use the bottom line.
-Known notification codes use their short labels; unknown codes are shown in hex
-as `SPA NOTE NN`. The notification takes precedence over `PRIME PUMPS` when
-both need the bottom line. Otherwise `PRIME PUMPS` appears there while priming
-is active. An invalid channel assignment recommends a spa-pack reset without
-claiming that channel exhaustion is proven.
+Channel alerts and requested diagnostics can replace the normal center display.
+With fresh spa data, temperature and set point remain visible; a bell and spa
+notification use the bottom line. Known notification codes use short labels;
+unknown codes are shown in hex as `SPA NOTE NN`. A notification takes precedence
+over `PRIME PUMPS` when both need the bottom line. An invalid channel assignment
+recommends a spa-pack reset without claiming that channel exhaustion is proven.
 
 The approved layout uses live MQTT state. Updates are coalesced, unchanged
 images are skipped, and physical redraws are limited to one every 16 seconds.
 When spa telemetry is stale, current temperature shows `--.-` and the set point
-keeps its last known value (or shows `SET -- C` if unknown). The six equipment
-icons keep their last observed states, the lower-right link icon turns off, and
-the bottom line shows a bell with `GATEWAY OFFLINE`, `SPA LINK LOST`, or
-`WAITING FOR SPA` as appropriate.
+keeps its last value received during the current LilyGO boot (or shows `SET -- C`
+if unknown). After a LilyGO restart, the set point remains unknown until MQTT
+data arrives. The six equipment icons keep their last observed states, the
+lower-right link icon turns off, and the bottom line shows a bell with
+`GATEWAY OFFLINE`, `SPA LINK LOST`, or `WAITING FOR SPA` as appropriate.
 
 Icons are monochrome BMPs selected from Home Assistant's MDI set; their SVG
 sources and license are in [`assets/mdi`](../assets/mdi/).

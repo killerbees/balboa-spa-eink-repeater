@@ -1,8 +1,10 @@
 # MQTT contract
 
-The display consumes the Waveshare schema v2 entity topics documented in the
-[main gateway repository](https://github.com/killerbees/Balboa_Spa_Controller_ESP32_RS485/blob/pr/bp200g1-reliability-mqtt/docs/mqtt-command-state-schema.md).
-It does not subscribe to or publish spa-control entity command topics.
+The display consumes the Waveshare MQTT schema v2 documented at gateway commit
+[`45745667`](https://github.com/killerbees/Balboa_Spa_Controller_ESP32_RS485/blob/45745667af31cdcda17cd18a83abd6ec8bab0bc4/docs/mqtt-command-state-schema.md).
+The gateway has no published release tag; this accessory versions independently
+against that interface. It does not subscribe to or publish spa-control entity
+command topics.
 
 ## Gateway inputs
 
@@ -48,6 +50,7 @@ Examples (substitute broker flags/credentials for the local network):
 mosquitto_pub -t balboa/spa-eink/command -m STATUS
 mosquitto_sub -t balboa/spa-eink/status
 mosquitto_pub -t balboa/spa-eink/command -m DIAGNOSTICS
+mosquitto_pub -t balboa/spa-eink/switch/display_diagnostics_overlay/command -m OFF
 ```
 
 To restart, first read the `reset_command` field from `/status`, then publish
