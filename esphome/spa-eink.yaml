@@ -1,0 +1,508 @@
+# SPDX-License-Identifier: Apache-2.0
+# LilyGO T5 V2.3.1 profile. Verify the panel label before flashing.
+substitutions:
+  node_name: balboa-spa-eink
+  friendly_name: Balboa Spa E-Ink Repeater
+  # Change to 2.13in-ttgo-b74 if the panel is GDEM0213B74.
+  epaper_model: 2.13in-ttgo-dke
+  gateway_prefix: balboa/waveshare
+  display_prefix: balboa/spa-eink
+
+esphome:
+  name: ${node_name}
+  friendly_name: ${friendly_name}
+  project:
+    name: killerbees.balboa_spa_eink_repeater
+    version: 0.1.0
+  on_boot:
+    priority: -100
+    then:
+      - lambda: |-
+          id(reset_token) = esp_random();
+      - script.execute: refresh_display
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+logger:
+  level: INFO
+  # Diagnostics use structured, on-demand MQTT; do not mirror logs into MQTT.
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  reboot_timeout: 15min
+
+mqtt:
+  id: mqtt_client
+  broker: !secret mqtt_broker
+  username: !secret mqtt_username
+  password: !secret mqtt_password
+  topic_prefix: ${display_prefix}
+  discovery: true
+  discovery_retain: true
+  log_topic: null
+  birth_message:
+    topic: ${display_prefix}/availability
+    payload: online
+    qos: 0
+    retain: true
+  will_message:
+    topic: ${display_prefix}/availability
+    payload: offline
+    qos: 0
+    retain: true
+  shutdown_message:
+    topic: ${display_prefix}/availability
+    payload: offline
+    qos: 0
+    retain: true
+  on_connect:
+    then:
+      - script.execute: request_gateway_status
+      - script.execute: request_gateway_diagnostics
+      - script.execute: publish_device_status
+  on_json_message:
+    - topic: ${gateway_prefix}/status
+      then:
+        - lambda: |-
+            if (x["schema_version"].as<int>() != 2 || !x["message"].is<const char*>()) return;
+            const char *message = x["message"] | "";
+            const int selector = x["value"] | -1;
+            if (strcmp(message, "STATUS") == 0 && selector == 5) {
+              JsonObjectConst spa = x["status"]["spa"].as<JsonObjectConst>();
+              const bool fresh = spa["fresh"] | false;
+              if (fresh && spa["state"].is<JsonObjectConst>()) {
+                JsonObjectConst state = spa["state"].as<JsonObjectConst>();
+                id(last_spa_status_ms) = millis();
+                id(gateway_boot_id) = x["boot_id"] | 0;
+                if (!state["current_temperature_c"].isNull())
+                  id(spa_current_temperature).publish_state(state["current_temperature_c"].as<float>());
+                if (!state["target_temperature_c"].isNull())
+                  id(spa_target_temperature).publish_state(state["target_temperature_c"].as<float>());
+                id(spa_notification_code) = state["notification"] | 0;
+                id(spa_heating_mode_raw) = state["heating_mode_raw"] | 0;
+                if (state["pumps"].is<JsonArrayConst>()) {
+                  JsonArrayConst pumps = state["pumps"].as<JsonArrayConst>();
+                  if (pumps.size() > 0) id(spa_jets_speed).publish_state(pumps[0].as<int>());
+                }
+                if (state["lights"].is<JsonArrayConst>()) {
+                  JsonArrayConst lights = state["lights"].as<JsonArrayConst>();
+                  if (lights.size() > 0) id(spa_light_on) = lights[0].as<bool>();
+                }
+                id(spa_heating_on) = state["heating"] | false;
+                id(spa_priming_on) = state["priming"] | false;
+                id(spa_filter1_on) = state["filter1_running"] | false;
+                id(spa_filter2_on) = state["filter2_running"] | false;
+              }
+              id(refresh_display).execute();
+            } else if (strcmp(message, "DEBUG") == 0 && selector == 8 && x["debug"]["events"].is<JsonArrayConst>()) {
+              JsonArrayConst events = x["debug"]["events"].as<JsonArrayConst>();
+              for (JsonObjectConst event : events) {
+                const char *kind = event["kind"] | "";
+                if (strcmp(kind, "POSSIBLE_CHANNEL_LEAK") == 0) {
+                  id(active_alert) = "POSSIBLE CHANNEL LEAK";
+                  id(active_alert_code) = "POSSIBLE_CHANNEL_LEAK";
+                  id(alert_event_seq) = event["seq"] | 0;
+                  id(alert_until_ms) = millis() + 120000UL;
+                } else if (strcmp(kind, "REJECTED") == 0 &&
+                           event["frame_type"] == 0xBF02 &&
+                           event["detail"] == 6 && event["channel"] > 0x2F) {
+                  id(active_alert) = "CHANNEL LIMIT: ASSIGNMENT REJECTED";
+                  id(active_alert_code) = "CHANNEL_RANGE_EXCEEDED";
+                  id(alert_event_seq) = event["seq"] | 0;
+                  id(alert_until_ms) = millis() + 120000UL;
+                }
+              }
+              id(refresh_display).execute();
+              id(publish_device_status).execute();
+            }
+  on_message:
+    - topic: ${gateway_prefix}/availability
+      then:
+        - lambda: |-
+            id(gateway_online) = (x == "online");
+            if (id(gateway_online)) id(request_gateway_status).execute();
+            id(refresh_display).execute();
+    - topic: ${display_prefix}/command
+      then:
+        - lambda: |-
+            if (x == "STATUS") {
+              id(publish_device_status).execute();
+            } else if (x == "DIAGNOSTICS") {
+              id(show_diagnostics) = true;
+              id(display_diagnostics).publish_state(true);
+              id(refresh_display).execute();
+              id(request_gateway_diagnostics).execute();
+              id(publish_device_status).execute();
+            } else if (x.rfind("RESTART ", 0) == 0) {
+              const std::string expected = "RESTART " + std::to_string(id(reset_token));
+              if (x == expected) id(restart_device).execute();
+            }
+
+font:
+  - file: "gfonts://Roboto"
+    id: font_small
+    size: 12
+  - file: "gfonts://Roboto"
+    id: font_medium
+    size: 16
+  - file: "gfonts://Roboto"
+    id: font_large
+    size: 34
+
+sensor:
+  - platform: mqtt_subscribe
+    id: spa_current_temperature
+    name: Spa Current Temperature
+    topic: ${gateway_prefix}/sensor/spa_current_temperature/state
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 1
+    on_value:
+      then:
+        - lambda: |-
+            id(last_spa_status_ms) = millis();
+        - script.execute: refresh_display
+  - platform: mqtt_subscribe
+    id: spa_target_temperature
+    name: Spa Target Temperature
+    topic: ${gateway_prefix}/sensor/spa_target_temperature/state
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 1
+    on_value:
+      then:
+        - script.execute: refresh_display
+  - platform: mqtt_subscribe
+    id: spa_jets_speed
+    name: Spa Jets Speed
+    topic: ${gateway_prefix}/fan/spa_jets/speed_level/state
+    accuracy_decimals: 0
+    on_value:
+      then:
+        - script.execute: refresh_display
+  - platform: wifi_signal
+    name: Wi-Fi Signal
+    update_interval: 60s
+  - platform: uptime
+    name: Uptime
+    update_interval: 60s
+  - platform: template
+    id: spa_status_age
+    name: Spa Status Age
+    unit_of_measurement: s
+    accuracy_decimals: 0
+    update_interval: 5s
+    lambda: |-
+      if (id(last_spa_status_ms) == 0) return {};
+      return (millis() - id(last_spa_status_ms)) / 1000.0f;
+  - platform: template
+    name: Display Refresh Age
+    unit_of_measurement: s
+    accuracy_decimals: 0
+    update_interval: 5s
+    lambda: |-
+      if (id(last_display_update_ms) == 0) return {};
+      return (millis() - id(last_display_update_ms)) / 1000.0f;
+
+text_sensor:
+  - platform: mqtt_subscribe
+    id: spa_heating_mode
+    name: Spa Heating Mode
+    topic: ${gateway_prefix}/select/spa_heating_mode/state
+    on_value:
+      then:
+        - script.execute: refresh_display
+  - platform: mqtt_subscribe
+    id: spa_jets_state
+    name: Spa Jets State
+    topic: ${gateway_prefix}/fan/spa_jets/state
+    on_value:
+      then:
+        - script.execute: refresh_display
+  - platform: mqtt_subscribe
+    id: spa_light_state
+    name: Spa Light State
+    topic: ${gateway_prefix}/switch/spa_light/state
+    on_value:
+      then:
+        - lambda: |-
+            id(spa_light_on) = (x == "ON");
+        - script.execute: refresh_display
+  - platform: template
+    name: Active Spa Alert
+    lambda: return id(active_alert);
+    update_interval: 5s
+
+binary_sensor:
+  - platform: template
+    id: spa_link
+    name: Spa Link
+    device_class: connectivity
+    lambda: |-
+      return id(gateway_online) && id(last_spa_status_ms) != 0 &&
+             (millis() - id(last_spa_status_ms) < 45000UL);
+    on_state:
+      then:
+        - script.execute: refresh_display
+  - platform: template
+    name: Gateway Available
+    device_class: connectivity
+    lambda: return id(gateway_online);
+  - platform: template
+    id: spa_heating
+    name: Spa Heating
+    device_class: heat
+    lambda: return id(spa_heating_on);
+  - platform: template
+    id: spa_light
+    name: Spa Light
+    device_class: light
+    lambda: return id(spa_light_on);
+  - platform: template
+    id: spa_priming
+    name: Spa Priming
+    lambda: return id(spa_priming_on);
+  - platform: template
+    id: spa_filter1
+    name: Spa Filter 1 Running
+    lambda: return id(spa_filter1_on);
+  - platform: template
+    id: spa_filter2
+    name: Spa Filter 2 Running
+    lambda: return id(spa_filter2_on);
+  - platform: template
+    name: MQTT Connected
+    device_class: connectivity
+    lambda: return id(mqtt_client).is_connected();
+
+switch:
+  - platform: template
+    id: display_diagnostics
+    name: Display Diagnostics Overlay
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      - lambda: id(show_diagnostics) = true;
+      - script.execute: refresh_display
+    turn_off_action:
+      - lambda: id(show_diagnostics) = false;
+      - script.execute: refresh_display
+
+globals:
+  - id: reset_token
+    type: uint32_t
+    initial_value: "0"
+  - id: last_spa_status_ms
+    type: uint32_t
+    initial_value: "0"
+  - id: last_display_update_ms
+    type: uint32_t
+    initial_value: "0"
+  - id: gateway_boot_id
+    type: uint32_t
+    initial_value: "0"
+  - id: spa_notification_code
+    type: int
+    initial_value: "0"
+  - id: spa_heating_mode_raw
+    type: int
+    initial_value: "0"
+  - id: spa_heating_on
+    type: bool
+    initial_value: "false"
+  - id: spa_light_on
+    type: bool
+    initial_value: "false"
+  - id: spa_priming_on
+    type: bool
+    initial_value: "false"
+  - id: spa_filter1_on
+    type: bool
+    initial_value: "false"
+  - id: spa_filter2_on
+    type: bool
+    initial_value: "false"
+  - id: gateway_online
+    type: bool
+    initial_value: "false"
+  - id: show_diagnostics
+    type: bool
+    initial_value: "false"
+  - id: active_alert
+    type: std::string
+    initial_value: '""'
+  - id: active_alert_code
+    type: std::string
+    initial_value: '""'
+  - id: alert_event_seq
+    type: uint32_t
+    initial_value: "0"
+  - id: alert_until_ms
+    type: uint32_t
+    initial_value: "0"
+
+script:
+  - id: refresh_display
+    then:
+      - delay: 750ms
+      - lambda: id(last_display_update_ms) = millis();
+      - component.update: eink_display
+    mode: restart
+  - id: request_gateway_status
+    then:
+      - mqtt.publish:
+          topic: ${gateway_prefix}/command
+          payload: STATUS 5
+          qos: 0
+          retain: false
+  - id: request_gateway_diagnostics
+    then:
+      - mqtt.publish:
+          topic: ${gateway_prefix}/command
+          payload: DEBUG 8
+          qos: 0
+          retain: false
+  - id: publish_device_status
+    then:
+      - mqtt.publish_json:
+          topic: ${display_prefix}/status
+          qos: 0
+          retain: false
+          payload: |-
+            root["schema_version"] = 1;
+            root["message"] = "STATUS";
+            root["boot_id"] = id(reset_token);
+            root["uptime_ms"] = millis();
+            root["mqtt_connected"] = id(mqtt_client).is_connected();
+            root["gateway_online"] = id(gateway_online);
+            root["spa_link"] = id(spa_link).has_state() && id(spa_link).state;
+            if (id(last_spa_status_ms) == 0) root["spa_status_age_ms"] = nullptr;
+            else root["spa_status_age_ms"] = millis() - id(last_spa_status_ms);
+            root["spa_notification_code"] = id(spa_notification_code);
+            if (id(last_display_update_ms) == 0) root["display_refresh_age_ms"] = nullptr;
+            else root["display_refresh_age_ms"] = millis() - id(last_display_update_ms);
+            root["active_alert"] = id(active_alert);
+            root["active_alert_code"] = id(active_alert_code);
+            root["alert_event_seq"] = id(alert_event_seq);
+            root["free_heap_bytes"] = ESP.getFreeHeap();
+            root["reset_command"] = "RESTART " + std::to_string(id(reset_token));
+            root["display_model"] = "${epaper_model}";
+  - id: restart_device
+    then:
+      - delay: 250ms
+      - lambda: App.safe_reboot();
+
+interval:
+  - interval: 30s
+    then:
+      - lambda: |-
+          if (id(mqtt_client).is_connected() && id(gateway_online))
+            id(request_gateway_status).execute();
+  - interval: 60s
+    then:
+      - lambda: |-
+          if (id(mqtt_client).is_connected() && id(gateway_online))
+            id(request_gateway_diagnostics).execute();
+  - interval: 30s
+    then:
+      - script.execute: publish_device_status
+  - interval: 5s
+    then:
+      - lambda: |-
+          if (id(alert_until_ms) != 0 && int32_t(millis() - id(alert_until_ms)) >= 0) {
+            id(alert_until_ms) = 0;
+            id(active_alert) = "";
+            id(active_alert_code) = "";
+            id(refresh_display).execute();
+          }
+
+spi:
+  clk_pin: GPIO18
+  mosi_pin: GPIO23
+
+display:
+  - platform: waveshare_epaper
+    id: eink_display
+    cs_pin: GPIO5
+    dc_pin: GPIO17
+    reset_pin: GPIO16
+    busy_pin: GPIO4
+    model: ${epaper_model}
+    rotation: 90°
+    update_interval: never
+    lambda: |-
+      it.fill(Color::WHITE);
+      const int width = it.get_width();
+      const int height = it.get_height();
+      it.line(0, 20, width, 20);
+      it.line(0, height - 22, width, height - 22);
+
+      // TP500-style Wi-Fi glyph means fresh spa telemetry, not Wi-Fi association.
+      const bool spa_fresh = id(spa_link).has_state() && id(spa_link).state;
+      const int cx = width - 14;
+      const int base_y = 15;
+      if (spa_fresh) {
+        const int radii[] = {3, 6, 9};
+        for (int r : radii) {
+          const int x0 = cx - r;
+          const int x1 = cx - r / 2;
+          const int x2 = cx;
+          const int x3 = cx + r / 2;
+          const int x4 = cx + r;
+          const int y0 = base_y;
+          const int y1 = base_y - (r * 2) / 3;
+          const int y2 = base_y - r;
+          it.line(x0, y0, x1, y1);
+          it.line(x1, y1, x2, y2);
+          it.line(x2, y2, x3, y1);
+          it.line(x3, y1, x4, y0);
+        }
+        it.filled_circle(cx, 16, 1);
+      } else {
+        it.line(cx - 7, 6, cx + 7, 19);
+        it.line(cx + 7, 6, cx - 7, 19);
+      }
+
+      if (id(show_diagnostics)) {
+        it.print(4, 4, id(font_medium), "DISPLAY DIAGNOSTICS");
+        it.printf(4, 30, id(font_small), "MQTT: %s", id(mqtt_client).is_connected() ? "connected" : "offline");
+        it.printf(4, 48, id(font_small), "GW: %s  LINK: %s", id(gateway_online) ? "online" : "offline",
+                  id(spa_link).has_state() && id(spa_link).state ? "fresh" : "stale");
+        it.printf(4, 66, id(font_small), "HEAP: %lu", static_cast<unsigned long>(ESP.getFreeHeap()));
+      } else if (!id(active_alert).empty()) {
+        it.print(4, 4, id(font_medium), "GATEWAY ALERT");
+        it.printf(4, 38, id(font_medium), "%s", id(active_alert).c_str());
+      } else if (id(spa_notification_code) != 0) {
+        const char *note = "SPA NOTICE";
+        if (id(spa_notification_code) == 0x04) note = "CLEAN FILTER";
+        else if (id(spa_notification_code) == 0x09) note = "CHECK SANITIZER";
+        else if (id(spa_notification_code) == 0x0A) note = "CHECK pH";
+        it.print(4, 4, id(font_medium), "SPA NOTIFICATION");
+        it.printf(4, 42, id(font_large), "%s", note);
+        if (strcmp(note, "SPA NOTICE") == 0)
+          it.printf(4, 82, id(font_small), "CODE %02X", id(spa_notification_code));
+      } else {
+        if (!spa_fresh || !id(spa_current_temperature).has_state()) {
+          it.print(4, 44, id(font_medium), "WAITING FOR SPA DATA");
+        } else {
+          it.printf(4, 28, id(font_large), "%.1f", id(spa_current_temperature).state);
+          it.printf(width - 4, 36, id(font_medium), "°C");
+          if (id(spa_target_temperature).has_state())
+            it.printf(4, 68, id(font_small), "SET %.1f °C", id(spa_target_temperature).state);
+          it.printf(4, height - 18, id(font_small), "%s  %s  JETS %s  LIGHT %s",
+                    id(spa_heating_on) ? "HEAT" : "",
+                    id(spa_heating_mode_raw) == 1 ? "REST" : "READY",
+                    id(spa_jets_speed).has_state() && id(spa_jets_speed).state > 0 ? "ON" : "OFF",
+                    id(spa_light_on) ? "ON" : "OFF");
+        }
+      }

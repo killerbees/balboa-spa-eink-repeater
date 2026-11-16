@@ -33,21 +33,28 @@ fresh same-boot spa status is arriving. MQTT online by itself does not light it.
 - Availability: `balboa/spa-eink/availability` (retained birth/LWT).
 - HA discovery prefix: `homeassistant/`.
 
-Accepted command payloads: `STATUS`, `DIAGNOSTICS`, `RESTART`. No other
-payloads are actions. The display responds to STATUS/DIAGNOSTICS on its own
-`/status` topic. RESTART reboots only the LilyGO display.
+Accepted command payloads are `STATUS`, `DIAGNOSTICS`, and the current-boot
+token form `RESTART <token>`. Obtain the token from the device's own STATUS JSON
+as `reset_command`; this prevents a retained restart payload from rebooting each
+time the device reconnects. DIAGNOSTICS opens the local overlay until its HA
+switch is turned off. No spa-control commands are accepted. The display responds
+on its own `/status` topic. RESTART reboots only the LilyGO display.
 
 ## Gateway alert transport
 
 The gateway currently returns bounded event provenance in `DEBUG 8`; the
-LilyGO can display `POSSIBLE_CHANNEL_LEAK` from that response. Out-of-channels
-requires a stable explicit gateway alert before the display can report it; do
-not infer it from READY traffic or a missing assignment. Define that gateway
-message before relying on the alert.
+LilyGO can display `POSSIBLE_CHANNEL_LEAK` from that response for two minutes.
+A rejected
+invalid-channel assignment (`REJECTED`, frame type `0xBF02`, detail `6`, raw
+channel above `0x2F`) is shown as `CHANNEL LIMIT: ASSIGNMENT REJECTED`. This is
+evidence of a rejected out-of-range assignment, not proof that every channel is
+allocated. Do not infer exhaustion from READY traffic or a missing assignment.
 
 ## Home Assistant discovery
 
-Publish retained discovery for a single device with health entities for Wi-Fi
-RSSI, MQTT connectivity, gateway availability, spa telemetry freshness/age,
-last display update, and active alert. State values and status JSON are
-non-retained. HA availability uses the LilyGO's own availability topic.
+The YAML enables retained ESPHome discovery for one device, including health
+entities for LilyGO Wi-Fi RSSI, MQTT connectivity, gateway availability, spa
+telemetry freshness/age, and active alert, plus observed spa values. State
+values and status JSON are non-retained. HA availability uses the LilyGO's own
+availability topic. Any discrepancy between this list and generated discovery
+is a known implementation/doc gap to check on hardware.

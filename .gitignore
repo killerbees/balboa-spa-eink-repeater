@@ -4,3 +4,4 @@ include/secrets.h
 secrets.yaml
 *.log
 .DS_Store
+.esphome/
